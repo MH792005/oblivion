@@ -3,6 +3,8 @@
 **/build/
 !**/src/main/build/
 local.properties
+gradle.properties
+**/gradle.properties
 .navigation/
 
 # Rust / Cargo build outputs
