@@ -1,0 +1,24 @@
+# Gradle & Build artifacts
+.gradle/
+**/build/
+!**/src/main/build/
+local.properties
+.navigation/
+
+# Rust / Cargo build outputs
+oblivion-crypto/target/
+**/Cargo.lock
+
+# IDE & OS files
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Android NDK / CMake generated files
+.cxx/
+**/obj/
+**/libs/
+
+# Security mapping output artifacts (never track raw obfuscation mappings)
+build/outputs/oblivion/

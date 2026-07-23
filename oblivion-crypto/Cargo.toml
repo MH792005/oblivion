@@ -1,0 +1,20 @@
+[package]
+name = "oblivion-crypto"
+version = "1.0.0"
+edition = "2021"
+authors = ["Oblivion Security Team"]
+description = "White-box cryptography and hardware binding static library for Oblivion"
+
+[lib]
+name = "oblivion_crypto"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[dependencies]
+zeroize = { version = "1.7", features = ["zeroize_derive"] }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
