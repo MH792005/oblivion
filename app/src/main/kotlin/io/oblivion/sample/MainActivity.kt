@@ -1,12 +1,16 @@
 package io.oblivion.sample
 
+import android.app.Activity
+import android.os.Bundle
 import io.oblivion.annotations.Oblivion
 import io.oblivion.runtime.OblivionCore
 
 @Oblivion(flatten = true, obfuscateStrings = true)
-class MainActivity {
+class MainActivity : Activity() {
 
-    fun onCreate() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
         // OblivionCore initializes native library and RASP security daemons automatically
         OblivionCore.init()
 
