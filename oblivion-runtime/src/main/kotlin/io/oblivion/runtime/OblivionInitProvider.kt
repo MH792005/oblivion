@@ -1,15 +1,14 @@
-package io.oblivion.annotations
+package io.oblivion.runtime
 
 import android.content.ContentProvider
 import android.content.ContentValues
 import android.database.Cursor
 import android.net.Uri
-import io.oblivion.runtime.OblivionCore
 
 /**
- * Auto-initialization ContentProvider for Oblivion.
+ * Auto-initialization ContentProvider for Oblivion Runtime.
  * Runs prior to Application.onCreate() / Activity.onCreate() to ensure native security
- * daemons and libraries are loaded even if the target app has no custom Application class.
+ * daemons and libraries are loaded automatically even if host app lacks a custom Application class.
  */
 class OblivionInitProvider : ContentProvider() {
 

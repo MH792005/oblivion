@@ -27,7 +27,7 @@ public class OblivionClassTransformer {
         ClassReader cr = new ClassReader(classBytes);
         String className = cr.getClassName();
 
-        // 3. Self-Referential Obfuscation Exclusion Filter: Never mutate internal framework or system classes
+        // Self-Referential Obfuscation Exclusion Filter: Never mutate internal framework or system classes
         if (className != null && (
                 className.startsWith("io/oblivion/") ||
                 className.startsWith("kotlin/") ||
@@ -44,14 +44,14 @@ public class OblivionClassTransformer {
         boolean classHasAnnotation = hasOblivionAnnotation(classNode.invisibleAnnotations) ||
                                      hasOblivionAnnotation(classNode.visibleAnnotations);
 
-        boolean shouldProcessClass = classHasAnnotation;
+        boolean processClass = classHasAnnotation;
 
         for (MethodNode mn : classNode.methods) {
             boolean methodHasAnnotation = hasOblivionAnnotation(mn.invisibleAnnotations) ||
                                           hasOblivionAnnotation(mn.visibleAnnotations);
 
             if (classHasAnnotation || methodHasAnnotation) {
-                shouldProcessClass = true;
+                processClass = true;
 
                 if (flattenControlFlow) {
                     ControlFlowFlatteningVisitor cff = new ControlFlowFlatteningVisitor(
@@ -62,11 +62,13 @@ public class OblivionClassTransformer {
             }
         }
 
-        if (!shouldProcessClass) {
+        if (!processClass) {
             return classBytes;
         }
 
-        // 4. Use AndroidSafeClassWriter to prevent ClassNotFoundException during Gradle Android compilation
+        final boolean finalShouldProcessClass = processClass;
+
+        // Use AndroidSafeClassWriter to prevent ClassNotFoundException during Gradle Android compilation
         AndroidSafeClassWriter cw = new AndroidSafeClassWriter(cr, AndroidSafeClassWriter.COMPUTE_FRAMES | AndroidSafeClassWriter.COMPUTE_MAXS);
         
         AnnotationStripperVisitor stripper = new AnnotationStripperVisitor(Opcodes.ASM9, cw);
@@ -76,7 +78,7 @@ public class OblivionClassTransformer {
             @Override
             public org.objectweb.asm.MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
                 org.objectweb.asm.MethodVisitor mv = super.visitMethod(access, name, descriptor, signature, exceptions);
-                if (obfuscateStrings && shouldProcessClass) {
+                if (obfuscateStrings && finalShouldProcessClass) {
                     return new StringObfuscationVisitor(api, mv, classNode.name, name);
                 }
                 return mv;

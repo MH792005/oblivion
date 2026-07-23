@@ -1,24 +1,19 @@
 plugins {
-    alias(libs.plugins.android.library)
-    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.jvm)
+    id("maven-publish")
 }
 
-android {
-    namespace = "io.oblivion.annotations"
-    compileSdk = 34
+group = "io.oblivion.security"
+version = "1.0.0"
 
-    defaultConfig {
-        minSdk = 24
-        consumerProguardFiles("consumer-rules.pro")
-    }
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
 
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-
-    kotlinOptions {
-        jvmTarget = "11"
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
     }
 }
 

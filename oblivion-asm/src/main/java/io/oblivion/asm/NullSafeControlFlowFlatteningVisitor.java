@@ -1,7 +1,6 @@
-package io.oblivion.plugin
+package io.oblivion.asm;
 
-import io.oblivion.asm.ControlFlowFlatteningVisitor;
-import io.oblivion.asm.OblivionMappingWriter;
+import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.LineNumberNode;
 import org.objectweb.asm.tree.MethodNode;
 
@@ -16,7 +15,7 @@ public class NullSafeControlFlowFlatteningVisitor extends ControlFlowFlatteningV
 
     public static int extractFirstLineNumber(MethodNode methodNode) {
         if (methodNode == null || methodNode.instructions == null) return -1;
-        for (org.objectweb.asm.tree.AbstractInsnNode insn : methodNode.instructions.toArray()) {
+        for (AbstractInsnNode insn : methodNode.instructions.toArray()) {
             if (insn instanceof LineNumberNode) {
                 return ((LineNumberNode) insn).line;
             }

@@ -1,7 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    id("io.oblivion.hardener")
 }
 
 android {
@@ -34,12 +33,6 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
-}
-
-oblivion {
-    enableInDebug = true
-    obfuscateStrings = true
-    flattenControlFlow = true
 }
 
 dependencies {
