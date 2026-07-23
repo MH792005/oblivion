@@ -66,12 +66,14 @@ static void scan_proc_self_maps() {
 static void* daemon_loop(void* arg) {
     (void)arg;
     
+#ifdef HAS_OBLIVION_CRYPTO
     // Verify hardware crypto binding on startup
     const uint8_t salt[] = "OBLIVION_DAEMON_SALT";
     uint8_t* key = derive_hardware_key(salt, sizeof(salt) - 1);
     if (key) {
         oblivion_free_key(key, 32);
     }
+#endif
 
     while (g_daemon_running.load()) {
         scan_proc_self_maps();

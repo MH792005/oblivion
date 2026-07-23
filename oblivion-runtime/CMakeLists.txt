@@ -14,7 +14,7 @@ if(OLLVM_ENABLED)
 endif()
 
 # Locate Rust static library header
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../oblivion-crypto/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../oblivion-crypto/include)
 
 # Include native sources
 add_library(oblivion_secure SHARED
@@ -25,11 +25,12 @@ add_library(oblivion_secure SHARED
 # Search for prebuilt liboblivion_crypto.a from Rust Cargo output
 find_library(CRYPTO_LIB oblivion_crypto
     PATHS
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../oblivion-crypto/target/${ANDROID_ABI}/release
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../oblivion-crypto/target/release
+    ${CMAKE_CURRENT_SOURCE_DIR}/../oblivion-crypto/target/${ANDROID_ABI}/release
+    ${CMAKE_CURRENT_SOURCE_DIR}/../oblivion-crypto/target/release
 )
 
 if(CRYPTO_LIB)
+    add_definitions(-DHAS_OBLIVION_CRYPTO=1)
     target_link_libraries(oblivion_secure ${CRYPTO_LIB} log)
 else()
     target_link_libraries(oblivion_secure log)

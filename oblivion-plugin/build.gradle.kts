@@ -36,12 +36,6 @@ gradlePlugin {
             description = "Enterprise-grade polyglot security framework for Android/JVM"
             tags.set(listOf("android", "security", "obfuscation", "rasp", "bytecode"))
             implementationClass = "io.oblivion.plugin.OblivionHardenerPlugin"
-
-            compatibility {
-                features {
-                    configurationCache = true
-                }
-            }
         }
     }
 }
