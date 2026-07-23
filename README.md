@@ -121,40 +121,17 @@ This file correlates flattened state-machine block IDs back to original source c
 
 ---
 
-## 🔧 Build & Publication Commands
+## 🔧 Building from Source
 
 ### Build Full Monorepo
 ```bash
 ./gradlew assembleRelease --stacktrace
 ```
 
-### Publish Plugin to Local Maven Repository (`~/.m2/repository`)
+### Publish to Local Maven Repository (`~/.m2/repository`)
 ```bash
 ./gradlew :oblivion-plugin:publishToMavenLocal
 ```
-
-### Validate Plugin Portal Publishing
-```bash
-./gradlew :oblivion-plugin:publishPlugins --validate-only
-```
-
----
-
-## 🔐 Publishing Security Best Practices
-
-> [!IMPORTANT]
-> **Never commit secret publishing keys or API tokens into version control.**
-
-Always store your Gradle Plugin Portal credentials in your global user directory (`~/.gradle/gradle.properties`):
-
-```properties
-gradle.publish.key=YOUR_GRADLE_PUBLISH_KEY
-gradle.publish.secret=YOUR_GRADLE_PUBLISH_SECRET
-```
-
-Or pass them via CI/CD environment variables:
-- `GRADLE_PUBLISH_KEY`
-- `GRADLE_PUBLISH_SECRET`
 
 ---
 
