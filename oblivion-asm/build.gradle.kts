@@ -1,6 +1,10 @@
 plugins {
     alias(libs.plugins.kotlin.jvm)
+    id("maven-publish")
 }
+
+group = "io.oblivion.security"
+version = "1.0.0"
 
 java {
     sourceCompatibility = JavaVersion.VERSION_11
@@ -19,4 +23,12 @@ dependencies {
     implementation(libs.asm)
     implementation(libs.asm.commons)
     implementation(libs.asm.tree)
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("mavenJava") {
+            from(components["java"])
+        }
+    }
 }
