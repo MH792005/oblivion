@@ -18,9 +18,8 @@ dependencyResolutionManagement {
 
 rootProject.name = "oblivion"
 
-include(":oblivion-annotations")
+include(":oblivion-domain")
 include(":oblivion-crypto")
-include(":oblivion-runtime")
-include(":oblivion-asm")
-include(":oblivion-plugin")
+include(":oblivion-integrity")
+include(":oblivion-android")
 include(":app")
