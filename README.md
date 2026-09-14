@@ -1,140 +1,149 @@
-# Project Oblivion (`io.oblivion.security`)
+# Oblivion (`io.oblivion.security`)
 
-[![Build & Security Verification](https://github.com/MH792005/oblivion/actions/workflows/ci.yml/badge.svg)](https://github.com/MH792005/oblivion/actions/workflows/ci.yml)
-[![Gradle Plugin Portal](https://img.shields.io/badge/Gradle%20Plugin-io.oblivion.hardener-blue.svg)](https://plugins.gradle.org/plugin/io.oblivion.hardener)
+[![Build & Test](https://github.com/MH792005/oblivion/actions/workflows/ci.yml/badge.svg)](https://github.com/MH792005/oblivion/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-**Project Oblivion** is a polyglot, enterprise-grade security plugin and native runtime protection suite designed to protect JVM and Android applications against advanced reverse engineering, Frida dynamic instrumentation, Xposed hooks, Ghidra/Jadx decompilation, and symbolic execution.
+**Oblivion** is a lightweight, high-performance application security and anti-tamper framework for Android and the JVM, written entirely in pure Kotlin and Java.
 
-The core philosophy of Project Oblivion is **Economic Denial**: shifting the cost of reverse engineering from a 10-minute automated script to weeks of grueling manual analysis, while delivering a **Zero-Config Developer Experience** where developers simply apply the Gradle plugin (`io.oblivion.hardener`) and click "Build."
+Rather than relying on fragile bytecode mutation plugins that break with compiler and build-tool updates, Oblivion is built around **Domain-Driven Design (DDD)**, **hardware-backed isolation (Android StrongBox / TEE)**, **zero-allocation memory safety**, and **multi-vector RASP**.
 
 ---
 
-## 🏛️ Monorepo Architecture
+## Architecture
+
+Oblivion is split into clean, decoupled modules with strict dependency boundaries:
 
 ```
 oblivion/
-├── oblivion-annotations/  # [Kotlin JVM] Lightweight annotation (@Oblivion) & OblivionCore bridge
-├── oblivion-crypto/       # [Rust / Cargo] White-box crypto, scrambled S-box tables & zeroize static lib
-├── oblivion-runtime/      # [C++17 / CMake] Native RASP daemon (ARM64/x86_64 raw assembly syscalls)
-├── oblivion-asm/          # [Java / OW2 ASM 9.x] Control Flow Flattening (CFF) & String Encryption
-├── oblivion-plugin/       # [Kotlin DSL] AGP Variant API Hardener Plugin (io.oblivion.hardener)
-└── app/                   # [Kotlin / Android] Integration sample application
+├── oblivion-domain/     # Pure Kotlin: value objects, sealed verdicts, domain ports
+├── oblivion-crypto/     # Pure JVM: AES-GCM, constant-time comparisons, HKDF-SHA256
+├── oblivion-integrity/  # Multi-vector RASP (anti-debug, anti-Frida, anti-root, signature)
+├── oblivion-android/    # Android adapters: StrongBox/TEE KeyStore, auto-init provider
+└── app/                 # Sample application with R8 minification enabled
+```
+
+### Key Modules
+
+* **`:oblivion-domain`**: The foundation. Defines typed value objects, domain exceptions (`OblivionException`), and the sealed `IntegrityVerdict` hierarchy. Contains zero external dependencies.
+* **`:oblivion-crypto`**: High-throughput cryptography utilizing CPU hardware intrinsics (AES-NI on x86, ARMv8 Crypto Extensions). Includes constant-time comparison primitives to defeat side-channel timing attacks, direct `ByteBuffer` support, and RFC 5869 HKDF-SHA256 key derivation.
+* **`:oblivion-integrity`**: Runtime Application Self-Protection (RASP). Inspects `/proc/self/status` for `TracerPid`, scans `/proc/self/maps` for injection agents (Frida, Xposed, Substrate), checks loopback debug ports (27042/27043), and verifies APK signing certificates against expected SHA-256 hashes. Includes `IntegrityMonitor` for continuous coroutine-based background polling.
+* **`:oblivion-android`**: Integrates with Android hardware. Manages AES-256 keys inside dedicated hardware chips (StrongBox HSM on Android 9+, with automatic fallback to TEE), and exposes an auto-bootstrapping `OblivionInitProvider`.
+
+---
+
+## Installation
+
+Add the dependency to your `build.gradle.kts`:
+
+```kotlin
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
+dependencies {
+    // For Android applications
+    implementation("io.oblivion.security:oblivion-android:2.0.0")
+
+    // Or for standalone JVM / backend projects
+    implementation("io.oblivion.security:oblivion-crypto:2.0.0")
+    implementation("io.oblivion.security:oblivion-integrity:2.0.0")
+}
 ```
 
 ---
 
-## ⚡ Key Security Capabilities
+## Quickstart
 
-### 1. Control Flow Flattening (CFF)
-- Converts targeted method control flow graphs into state-machine driven `switch-case` dispatchers inside a `while(true)` loop.
-- Uses opaque mathematical predicates to defeat static decompilation in Jadx, Ghidra, and IDA Pro.
+### 1. Evaluate Environment Integrity (RASP)
 
-### 2. Dynamic XOR String Obfuscation
-- Extracts string constants from annotated methods, converts them to XOR-encrypted byte arrays, and replaces them with dynamic native decryption calls (`OblivionCore.decryptString`).
-
-### 3. Native RASP (Runtime Application Self-Protection) Daemon
-- **Direct Linux Assembly Syscalls**: Bypasses `libc.so` PLT symbol hooks entirely using raw assembly `svc #0` calls for `openat` (56), `read` (63), `close` (57), and `exit_group` (94) with multi-ABI portable fallback guards (`syscalls.h`).
-- **Memory Scanner Daemon**: Spawns an independent detached thread on library load inspecting `/proc/self/maps` every 3 seconds for signature substrings (`"frida"`, `"xposed"`, `"gum-js"`, `"substrate"`). Triggers an immediate nuclear kernel exit (`exit_group(137)`) upon detection.
-
-### 4. White-Box Cryptography & Hardware Binding
-- Scrambled lookup tables for AES/custom block ciphers embedded directly into binary text sections.
-- **Hardware Key Derivation**: `derive_hardware_key(salt, salt_len)` binds static salt with device-unique runtime attributes.
-- **Zero-Memory Guarantee**: All intermediate cryptographic buffers automatically zero-out memory using Rust `zeroize` before deallocation.
-
-### 5. Automatic Entry Point Splicing & Annotation Stripping
-- Automatically splices `OblivionCore.init()` and `System.loadLibrary("oblivion_secure")` into entry points.
-- Strips `@Oblivion` annotations post-mutation to leave zero static metadata traces in the compiled DEX.
-
----
-
-## 🚀 Quick Start Guide
-
-### Step 1: Apply the Hardener Plugin
-
-Add `io.oblivion.hardener` to your application's `build.gradle.kts`:
+Evaluate whether the current device is rooted, actively debugged, or injected with hooking tools:
 
 ```kotlin
-plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
-    id("io.oblivion.hardener") version "1.0.0"
-}
-```
+import io.oblivion.android.Oblivion
+import io.oblivion.domain.model.IntegrityVerdict
+import io.oblivion.domain.model.SecurityPolicy
 
-### Step 2: Configure the Plugin DSL
+val verdict = Oblivion.verifyIntegrity(context, SecurityPolicy.STRICT)
 
-Configure the `oblivion` extension block in `build.gradle.kts`:
-
-```kotlin
-oblivion {
-    enableInDebug = false       // Set to true to run mutations on Debug builds (default false)
-    obfuscateStrings = true     // Enable dynamic XOR string obfuscation
-    flattenControlFlow = true   // Enable Control Flow Flattening (CFF)
-}
-```
-
-### Step 3: Annotate Target Functions or Classes
-
-Apply the `@Oblivion` annotation to classes or sensitive functions:
-
-```kotlin
-package io.oblivion.sample
-
-import android.app.Activity
-import android.os.Bundle
-import io.oblivion.annotations.Oblivion
-
-@Oblivion(flatten = true, obfuscateStrings = true)
-class MainActivity : Activity() {
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        
-        val token = computeSensitiveToken("UserSession_2026_Enterprise")
-        println("Generated Token: $token")
+when (verdict) {
+    is IntegrityVerdict.Clean -> {
+        // Environment is secure. Executed checks: verdict.checksExecuted
+        proceedWithSecureFlow()
     }
+    is IntegrityVerdict.Compromised -> {
+        // Security violation detected (e.g. debugger, Frida, root)
+        println("Security Violation: ${verdict.threatDescription}")
+        terminateSession()
+    }
+}
+```
 
-    @Oblivion
-    fun computeSensitiveToken(salt: String): String {
-        var token = "HEADER_"
-        val data = salt.toByteArray()
-        for (i in data.indices) {
-            token += (data[i].toInt() xor 0x7A).toChar()
+### 2. Continuous Background Monitoring
+
+You can also monitor the runtime environment continuously via a Kotlin Coroutine `Flow` to catch tools attached after startup:
+
+```kotlin
+lifecycleScope.launch {
+    Oblivion.monitorIntegrity(SecurityPolicy.STRICT, intervalMs = 5000L)
+        .collect { verdict ->
+            if (verdict is IntegrityVerdict.Compromised) {
+                // Attacker attached a debugger or hooked a function during runtime
+                terminateApp()
+            }
         }
-        return token + "_FOOTER"
-    }
 }
 ```
 
+### 3. Hardware-Accelerated Authenticated Encryption
+
+Encrypt sensitive data with AES-GCM (128-bit authentication tag) and decrypt into memory-safe containers:
+
+```kotlin
+val secretKey = ByteArray(32) // 256-bit AES key
+val sensitiveData = "CONFIDENTIAL_USER_SESSION".toByteArray()
+val contextAad = "USER_ID_10492".toByteArray()
+
+// Encrypt
+val encrypted = Oblivion.encrypt(sensitiveData, secretKey, associatedData = contextAad)
+
+// Decrypt into memory-safe container
+Oblivion.decrypt(encrypted, secretKey, associatedData = contextAad).useAndDestroy { rawBytes ->
+    // Use sensitive bytes safely here
+    transmitPayload(rawBytes)
+}
+// Memory buffer is actively zeroed out in RAM upon exiting the block
+```
+
+### 4. Hardware KeyStore (StrongBox / TEE)
+
+Generate and retrieve keys stored directly inside the physical hardware security chip:
+
+```kotlin
+val hardwareKey = Oblivion.getOrCreateHardwareKey("payment_signing_key")
+```
+
 ---
 
-## 🛠️ De-obfuscation Stack Mapping File
+## Building from Source
 
-During Release compilation, the plugin outputs a proprietary mapping file at:
-
-```
-build/outputs/oblivion/mapping.txt
-```
-
-This file correlates flattened state-machine block IDs back to original source code method names and line numbers for crash stack de-obfuscation.
-
----
-
-## 🔧 Building from Source
-
-### Build Full Monorepo
+### Run All Unit & Concurrency Tests
 ```bash
-./gradlew assembleRelease --stacktrace
+./gradlew test
+```
+
+### Build Sample Release APK (with R8 Minification)
+```bash
+./gradlew :app:assembleRelease
 ```
 
 ### Publish to Local Maven Repository (`~/.m2/repository`)
 ```bash
-./gradlew :oblivion-plugin:publishToMavenLocal
+./gradlew publishToMavenLocal
 ```
 
 ---
 
-## 📄 License
+## License
 
-Project Oblivion is licensed under the [Apache License 2.0](LICENSE).
+Oblivion is open-source software licensed under the [Apache License 2.0](LICENSE).
